@@ -1,0 +1,72 @@
+receivers:
+
+  otlp:
+
+    protocols:
+
+      grpc:
+
+        endpoint: 0.0.0.0:4317
+
+      http:
+
+        endpoint: 0.0.0.0:4318
+
+  filelog:
+
+    include: [ /var/log/pods/*/*/*.log ]
+    
+    exclude: [ /var/log/pods/*/otel-collector/*.log ]
+
+ 
+processors:
+
+  batch:
+
+  probabilistic_sampler:
+
+    sampling_percentage: 10
+ 
+exporters:
+
+  logging:
+
+    loglevel: debug
+
+  awsxray:
+
+    region: 'us-east-1'
+
+  awsemf:
+
+    region: 'us-east-1'
+
+  awscloudwatchlogs:
+
+    log_group_name: "adot-log-group"
+
+    log_stream_name: "adot-log-stream"
+ 
+service:
+
+  pipelines:
+
+    traces:
+
+      receivers: [otlp]
+
+      processors: [probabilistic_sampler]
+
+      exporters: [awsxray]
+
+    metrics:
+
+      receivers: [otlp]
+
+      exporters: [awsemf]
+
+    logs:
+
+      receivers: [filelog]
+
+      exporters: [awscloudwatchlogs]

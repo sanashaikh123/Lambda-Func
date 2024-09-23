@@ -1,0 +1,548 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "AWS CloudFormation  Template EC2_Instance: This template creates Linux Instances and configures Accentures security softwares. **WARNING** This template creates an Amazon EC2 instance. You will be billed for the AWS resources used if you create a stack from this template.",
+	"Parameters": {
+		"KeyName": {
+			"Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+			"Type": "AWS::EC2::KeyPair::KeyName",
+			"Default": "mywizard_RotatedKeyPair16/5/21",
+			"ConstraintDescription": "Can contain only ASCII characters."
+		},
+		"Subnet": {
+			"Description": "Available Subnets",
+			"Type": "String",
+			"Default": "subnet-78378822",
+			"AllowedValues": [
+				"subnet-78378822",
+				"subnet-cc78e1c0"
+			],
+			"ConstraintDescription": "must be the name of an existing Subnet."
+		},
+		"SecurityGroups": {
+			"Description": "Available SGs",
+			"Type": "List<AWS::EC2::SecurityGroup::Id>",
+			"Default": "sg-02cbe3b4a2cf9588a,sg-00ccb109f913ac1e9,sg-0efb1c55c49941421,sg-0cf24c04d390e8793",
+			"AllowedValues": [
+				"sg-02cbe3b4a2cf9588a",
+				"sg-00ccb109f913ac1e9",
+				"sg-0efb1c55c49941421",
+				"sg-0cf24c04d390e8793"
+			],
+			"ConstraintDescription": "must be the name of an existing SGs."
+		},
+		"VPC": {
+			"Description": "Available VPC",
+			"Type": "String",
+			"Default": "vpc-29109050",
+			"ConstraintDescription": "must be the name of an existing VPC."
+		},
+		"VolumeSize": {
+			"Description": "Volume Size for EC2",
+			"Type": "Number",
+			"Default": "11",
+			"AllowedValues": [
+				"11",
+				"30",
+				"60"
+			]
+		},
+		"InstanceType": {
+			"Description": "WebServer EC2 instance type",
+			"Type": "String",
+			"Default": "t2.small",
+			"AllowedValues": [
+				"t1.micro",
+				"t2.nano",
+				"t2.micro",
+				"t2.small",
+				"t2.medium",
+				"t2.large",
+				"t3.medium",
+				"t3a.medium",
+				"t3a.large",
+				"m1.small",
+				"m1.medium",
+				"m1.large",
+				"m1.xlarge",
+				"m2.xlarge",
+				"m2.2xlarge",
+				"m2.4xlarge",
+				"m3.medium",
+				"m3.large",
+				"m3.xlarge",
+				"m3.2xlarge",
+				"m4.large",
+				"m4.xlarge",
+				"m4.2xlarge",
+				"m4.4xlarge",
+				"m4.10xlarge",
+				"c1.medium",
+				"c1.xlarge",
+				"c3.large",
+				"c3.xlarge",
+				"c3.2xlarge",
+				"c3.4xlarge",
+				"c3.8xlarge",
+				"c4.large",
+				"c4.xlarge",
+				"c4.2xlarge",
+				"c4.4xlarge",
+				"c4.8xlarge",
+				"g2.2xlarge",
+				"g2.8xlarge",
+				"r3.large",
+				"r3.xlarge",
+				"r3.2xlarge",
+				"r3.4xlarge",
+				"r3.8xlarge",
+				"i2.xlarge",
+				"i2.2xlarge",
+				"i2.4xlarge",
+				"i2.8xlarge",
+				"d2.xlarge",
+				"d2.2xlarge",
+				"d2.4xlarge",
+				"d2.8xlarge",
+				"hi1.4xlarge",
+				"hs1.8xlarge",
+				"cr1.8xlarge",
+				"cc2.8xlarge",
+				"cg1.4xlarge"
+			],
+			"ConstraintDescription": "must be a valid EC2 instance type."
+		},
+		"OSType": {
+			"Description": "OS Flavour",
+			"Type": "String",
+			"Default": "CentOS",
+			"AllowedValues": [
+				"CentOS",
+				"Ubuntu"
+			],
+			"ConstraintDescription": "must be the name of an existing AMI."
+		},
+		"Name": {
+			"Description": "Name of the VM",
+			"Type": "String",
+			"ConstraintDescription": "must be Alphanumeric(Mandatory)"
+		},
+		"Owner": {
+			"Description": "Owner of the VM",
+			"Type": "String",
+			"ConstraintDescription": "must be Alphanumeric(Mandatory)"
+		},
+		"StartDate": {
+			"Description": "Starting Date of the VM",
+			"Type": "String",
+			"AllowedPattern": "^[0-9/]*$",
+			"ConstraintDescription": "must be numeric(Mandatory)"
+		},
+		"EndDate": {
+			"Description": "End Date of the VM",
+			"Type": "String",
+			"AllowedPattern": "^[0-9/]*$",
+			"ConstraintDescription": "must be numeric(Mandatory)"
+		}
+	},
+	"Metadata": {
+		"AWS::CloudFormation::Interface": {
+			"ParameterGroups": [
+				{
+					"Label": {
+						"default": "Amazon EC2 Configuration"
+					},
+					"Parameters": [
+						"InstanceType",
+						"OSType",
+						"VolumeSize",
+						"KeyName"
+					]
+				},
+				{
+					"Label": {
+						"default": "Network Configuration"
+					},
+					"Parameters": [
+						"VPC",
+						"Subnet",
+						"SecurityGroups"
+					]
+				},
+				{
+					"Label": {
+						"default": "EC2 Tags"
+					},
+					"Parameters": [
+						"Name",
+						"Owner",
+						"StartDate",
+						"EndDate"
+					]
+				}
+			]
+		}
+	},
+	"Mappings": {
+		"OStoAMI": {
+			"us-east-1": {
+				"CentOS": "ami-02a9dbc0ada50df9c",
+				"Ubuntu": "ami-0885b1f6bd170450c"
+			}
+		}
+	},
+	"Conditions": {
+		"IsCentos": {
+			"Fn::Equals": [
+				{
+					"Ref": "OSType"
+				},
+				"CentOS"
+			]
+		},
+		"IsUbuntu": {
+			"Fn::Equals": [
+				{
+					"Ref": "OSType"
+				},
+				"Ubuntu"
+			]
+		}
+	},
+	"Resources": {
+		"EC2Instance": {
+			"Type": "AWS::EC2::Instance",
+			"Metadata": {
+				"AWS::CloudFormation::Init": {
+					"configSets": {
+						"InstallAndRun": [
+							"Install",
+							"Configure"
+						]
+					},
+					"Install": {
+						"files": {
+							"/etc/cfn/cfn-hup.conf": {
+								"content": {
+									"Fn::Join": [
+										"",
+										[
+											"[main]\n",
+											"stack=",
+											{
+												"Ref": "AWS::StackId"
+											},
+											"\n",
+											"region=",
+											{
+												"Ref": "AWS::Region"
+											},
+											"\n"
+										]
+									]
+								},
+								"mode": "000400",
+								"owner": "root",
+								"group": "root"
+							},
+							"/etc/cfn/hooks.d/cfn-auto-reloader.conf": {
+								"content": {
+									"Fn::Join": [
+										"",
+										[
+											"[cfn-auto-reloader-hook]\n",
+											"triggers=post.update\n",
+											"path=Resources.EC2Instance.Metadata.AWS::CloudFormation::Init\n",
+											"action=/usr/bin/cfn-init -v ",
+											"         --stack ",
+											{
+												"Ref": "AWS::StackName"
+											},
+											"         --resource EC2Instance ",
+											"         --configsets InstallAndRun ",
+											"         --region ",
+											{
+												"Ref": "AWS::Region"
+											},
+											"\n",
+											"runas=root\n"
+										]
+									]
+								}
+							},
+							"/lib/systemd/system/cfn-hup.service": {
+								"content": {
+									"Fn::Join": [
+										"",
+										[
+											"[Unit]\n",
+											"Description=cfn-hup daemon\n\n",
+											"[Service]\n",
+											"Type=simple\n",
+											"ExecStart=/usr/bin/cfn-hup\n",
+											"Restart=always\n\n",
+											"[Install]\n",
+											"WantedBy=multi-user.target"
+										]
+									]
+								}
+							}
+						},
+						"services": {
+							"sysvinit": {
+								"cfn-hup": {
+									"enabled": "true",
+									"ensureRunning": "true",
+									"files": [
+										"/etc/cfn/cfn-hup.conf",
+										"/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+									]
+								}
+							}
+						}
+					},
+					"Configure": {
+						"Fn::If": [
+							"IsCentos",
+							{
+								"commands": {
+									"01_cli": {
+										"command": "curl \"https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip\" -o \"awscliv2.zip\" && unzip awscliv2.zip && ./aws/install -i /usr/local/aws-cli -b /usr/local/bin "
+									},
+									"02_agent": {
+										"command": {
+											"Fn::Join": [
+												"",
+												[
+													"wget https://s3.us-east-1.amazonaws.com/amazoncloudwatch-agent-us-east-1/centos/amd64/latest/amazon-cloudwatch-agent.rpm\n",
+													"sudo rpm -U ./amazon-cloudwatch-agent.rpm\n",
+													"aws s3 cp s3://ici-taniumreports/config.json /opt/aws/amazon-cloudwatch-agent/bin/\n",
+													"sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/bin/config.json\n"
+												]
+											]
+										}
+									},
+									"03_splunk": {
+										"command": "cd /opt && aws s3 cp s3://ici-taniumreports/Packages/splunk-uf-installer-linux-x86_64-9.1.1r1.tar.gz /opt && tar -xf splunk-uf-installer-linux-x86_64-9.1.1r1.tar.gz && cd splunk-uf-installer-linux-x86_64-9.1.1r1 && chmod +x splunk_nix_install.sh && ./splunk_nix_install.sh"
+									},
+									"04_qaulys": {
+										"command": "aws s3 cp s3://ici-taniumreports/Packages/Linux_RPM_QualysCloudAgent.x86_64.rpm /opt && cd /opt && rpm -ivh Linux_RPM_QualysCloudAgent.x86_64.rpm && /usr/local/qualys/cloud-agent/bin/qualys-cloud-agent.sh ActivationId=e7e5f786-fc2c-47f5-b394-935985e3d5d9 CustomerId=af433332-5b18-7be7-e040-10ac130451e8 ProviderName=AWS"
+									},
+									"05_tanium": {
+										"command": "aws s3 cp s3://ici-taniumreports/Packages/tanium-init.dat /opt && aws s3 cp s3://ici-taniumreports/Packages/TaniumClient-7.4.2.2073-1.rhe7.x86_64.rpm /opt && cd /opt && rpm -i TaniumClient-7.4.2.2073-1.rhe7.x86_64.rpm && cd /opt/Tanium/TaniumClient/ && ./TaniumClient config set ServerNameList tanium-srv-prod-a.accenture.com,tanium-srv-prod-b.accenture.com,tanium-srv-prod-z1.accenture.com,tanium-srv-prod-z2.accenture.com && ./TaniumClient config set LogVerbosityLevel 1 && ./TaniumClient config set ServerPort 443 && ./TaniumClient config set ListenPort 17472 && ./TaniumClient config set Resolver nslookup && cp -a /opt/tanium-init.dat /opt/Tanium/TaniumClient/ && systemctl stop taniumclient && systemctl start taniumclient"
+									},
+									"06_mde": {
+										"command": "aws s3 cp s3://ici-taniumreports/Packages/mdatp-installer-linux.tar.gz /opt && cd /opt && tar -xf mdatp-installer-linux.tar.gz && cd /opt/mdatp-installer-linux && chmod +x mde_installer.sh && ./mde_installer.sh -i"
+									}
+								}
+							},
+							{
+								"commands": {
+									"01_cli": {
+										"command": "curl \"https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip\" -o \"awscliv2.zip\" && unzip awscliv2.zip && ./aws/install -i /usr/local/aws-cli -b /usr/local/bin "
+									},
+									"02_agent": {
+										"command": {
+											"Fn::Join": [
+												"",
+												[
+													"wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb\n",
+													"sudo dpkg -i -E ./amazon-cloudwatch-agent.deb\n",
+													"aws s3 cp s3://ici-taniumreports/config.json /opt/aws/amazon-cloudwatch-agent/bin/\n",
+													"sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/bin/config.json\n"
+												]
+											]
+										}
+									},
+									"03_splunk": {
+										"command": "cd /opt && aws s3 cp s3://ici-taniumreports/Packages/splunk-uf-installer-linux-x86_64-9.1.1r1.tar.gz /opt && tar -xf splunk-uf-installer-linux-x86_64-9.1.1r1.tar.gz && cd splunk-uf-installer-linux-x86_64-9.1.1r1 && chmod +x splunk_nix_install.sh && ./splunk_nix_install.sh"
+									},
+									"04_qaulys": {
+										"command": "aws s3 cp s3://ici-taniumreports/Packages/Linux_Deb_QualysCloudAgent.x86_64.deb /opt && cd /opt &&  dpkg -i Linux_Deb_QualysCloudAgent.x86_64.deb &&  /usr/local/qualys/cloud-agent/bin/qualys-cloud-agent.sh ActivationId=e7e5f786-fc2c-47f5-b394-935985e3d5d9 CustomerId=af433332-5b18-7be7-e040-10ac130451e8 ProviderName=AWS"
+									},
+									"05_tanium": {
+										"command": "aws s3 cp s3://ici-taniumreports/Packages/tanium-init.dat /opt && aws s3 cp s3://ici-taniumreports/Packages/taniumclient_7.4.2.2073-ubuntu18_amd64.deb /opt && cd /opt && dpkg -i taniumclient_7.4.2.2073-ubuntu18_amd64.deb && cd /opt/Tanium/TaniumClient/ && ./TaniumClient config set ServerNameList tanium-srv-prod-a.accenture.com,tanium-srv-prod-b.accenture.com,tanium-srv-prod-z1.accenture.com,tanium-srv-prod-z2.accenture.com && ./TaniumClient config set LogVerbosityLevel 1 && ./TaniumClient config set ServerPort 443 && ./TaniumClient config set ListenPort 17472 && ./TaniumClient config set Resolver nslookup && cp -a /opt/tanium-init.dat /opt/Tanium/TaniumClient/ && systemctl stop taniumclient && systemctl start taniumclient"
+									},
+									"06_mde": {
+										"command": "aws s3 cp s3://ici-taniumreports/Packages/mdatp-installer-linux.tar.gz /opt && cd /opt && tar -xf mdatp-installer-linux.tar.gz && cd /opt/mdatp-installer-linux && chmod +x mde_installer.sh && ./mde_installer.sh -i"
+									}
+								}
+							}
+						]
+					}
+				}
+			},
+			"Properties": {
+				"ImageId": {
+					"Fn::FindInMap": [
+						"OStoAMI",
+						{
+							"Ref": "AWS::Region"
+						},
+						{
+							"Ref": "OSType"
+						}
+					]
+				},
+				"InstanceType": {
+					"Ref": "InstanceType"
+				},
+				"KeyName": {
+					"Ref": "KeyName"
+				},
+				"SecurityGroupIds": {
+					"Ref": "SecurityGroups"
+				},
+				"SubnetId": {
+					"Ref": "Subnet"
+				},
+				"IamInstanceProfile": "AmazonSSMRoleForInstancesQuickSetup",
+				"BlockDeviceMappings": [
+					{
+						"DeviceName": "/dev/sda1",
+						"Ebs": {
+							"VolumeType": "gp2",
+							"DeleteOnTermination": "false",
+							"VolumeSize": {
+								"Ref": "VolumeSize"
+							}
+						}
+					}
+				],
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Ref": "Name"
+						}
+					},
+					{
+						"Key": "ACPCloudhealthSchedules",
+						"Value": "IAPSA"
+					},
+					{
+						"Key": "Project",
+						"Value": "myWizard"
+					},
+					{
+						"Key": "Owner",
+						"Value": {
+							"Ref": "Owner"
+						}
+					},
+					{
+						"Key": "Startdate",
+						"Value": {
+							"Ref": "StartDate"
+						}
+					},
+					{
+						"Key": "Enddate",
+						"Value": {
+							"Ref": "EndDate"
+						}
+					}
+				],
+				"UserData": {
+					"Fn::Base64": {
+						"Fn::Join": [
+							"",
+							[
+								"#!/bin/bash  \n",
+								"if egrep -q '^(NAME=\"Ubuntu\")' /etc/os-release; then\n",
+								"wget https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz\n",
+								"python3 -m easy_install --script-dir /usr/bin aws-cfn-bootstrap-py3-latest.tar.gz\n",
+								"ln -s /usr/local/lib/python3.8/dist-packages/aws_cfn_bootstrap-2.0-py3.8.egg/init/ubuntu/cfn-hup /etc/init.d/cfn-hup\n",
+								"systemctl enable cfn-hup\n",
+								"systemctl start cfn-hup\n",
+								"apt-get upgrade -y\n",
+								"apt install -y unzip auditd acl\n",
+								"echo \"%mywizardusers ALL=(ALL) NOPASSWD:ALL\" >> /etc/sudoers \n",
+								"echo \"00 05 * * thu root /usr/bin/mdatp scan quick > /var/log/mdatp_cron_job.log\" >> /etc/cron.d/mdatp-scan",
+								"# Install the files and packages from the metadata\n",
+								"/usr/bin/cfn-init -v ",
+								"         --stack ",
+								{
+									"Ref": "AWS::StackName"
+								},
+								"         --resource EC2Instance ",
+								"         --configsets InstallAndRun ",
+								"         --region ",
+								{
+									"Ref": "AWS::Region"
+								},
+								"\n",
+								"# Start up the cfn-hup daemon to listen for changes to the EC2 metadata\n",
+								"#/usr/bin/cfn-hup || error_exit 'Failed to start cfn-hup'\n",
+								"# Signal the status from cfn-init\n",
+								"/usr/bin/cfn-signal -e $? ",
+								"         --stack ",
+								{
+									"Ref": "AWS::StackName"
+								},
+								"         --resource EC2Instance ",
+								"         --region ",
+								{
+									"Ref": "AWS::Region"
+								},
+								"\n",
+								"else\n",
+								"#yum update -y\n",
+								"yum install -y epel-release\n",
+								"yum install -y python-pip\n",
+								"yum install -y https://s3.us-east-1.amazonaws.com/amazon-ssm-us-east-1/latest/linux_amd64/amazon-ssm-agent.rpm\n",
+								"pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+								"yum update -y\n",
+								"yum install -y wget unzip\n",
+								"echo \"%mywizardusers ALL=(ALL) NOPASSWD:ALL\" >> /etc/sudoers \n",
+								"echo \"00 05 * * thu root /usr/bin/mdatp scan quick > /var/log/mdatp_cron_job.log\" >> /etc/cron.d/mdatp-scan",
+								"# Install the files and packages from the metadata\n",
+								"/usr/bin/cfn-init -v ",
+								"         --stack ",
+								{
+									"Ref": "AWS::StackName"
+								},
+								"         --resource EC2Instance ",
+								"         --configsets InstallAndRun ",
+								"         --region ",
+								{
+									"Ref": "AWS::Region"
+								},
+								"\n",
+								"# Start up the cfn-hup daemon to listen for changes to the EC2 metadata\n",
+								"/usr/bin/cfn-hup || error_exit 'Failed to start cfn-hup'\n",
+								"# Signal the status from cfn-init\n",
+								"/usr/bin/cfn-signal -e $? ",
+								"         --stack ",
+								{
+									"Ref": "AWS::StackName"
+								},
+								"         --resource EC2Instance ",
+								"         --region ",
+								{
+									"Ref": "AWS::Region"
+								},
+								"\nfi\n"
+							]
+						]
+					}
+				}
+			},
+			"CreationPolicy": {
+				"ResourceSignal": {
+					"Timeout": "PT20M"
+				}
+			}
+		}
+	},
+	"Outputs": {
+		"Instance": {
+			"Value": {
+				"Fn::GetAtt": [
+					"EC2Instance",
+					"PublicDnsName"
+				]
+			},
+			"Description": "DNS Name of the newly created EC2 instance"
+		}
+	}
+}
